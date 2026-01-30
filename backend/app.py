@@ -1,7 +1,6 @@
 import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from groq import Groq
@@ -16,7 +15,6 @@ from backend.analytics_engine import (
     get_preventable_denial_percentage,
     get_ar_balance_by_payer,
 )
-
 from backend.prompt_builder import build_prompt
 
 
@@ -28,7 +26,20 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 app = FastAPI(title="GenAI RCM Analytics Demo")
 
-STATIC_DIR = "static"
+
+# ---------------------------------------
+# STATIC UI (VITE BUILD)
+# ---------------------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+
+# Serve React build (index.html + assets)
+app.mount(
+    "/",
+    StaticFiles(directory=STATIC_DIR, html=True),
+    name="static",
+)
+
 
 # ---------------------------------------
 # REQUEST MODEL
@@ -112,15 +123,8 @@ def query_analytics(req: QueryRequest):
 
 
 # ---------------------------------------
-# STATIC FILES (SAFE)
+# LOCAL RUN (OPTIONAL)
 # ---------------------------------------
-app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
-
-@app.get("/")
-def serve_ui():
-    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
-
-
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000)
+    uvicorn.run("backend.app:app", host="0.0.0.0", port=8000)

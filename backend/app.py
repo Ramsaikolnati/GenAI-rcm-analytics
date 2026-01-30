@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from groq import Groq
@@ -28,17 +29,21 @@ app = FastAPI(title="GenAI RCM Analytics Demo")
 
 
 # ---------------------------------------
-# STATIC UI (VITE BUILD)
+# STATIC UI (SAFE)
 # ---------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 
-# Serve React build (index.html + assets)
 app.mount(
-    "/",
+    "/ui",
     StaticFiles(directory=STATIC_DIR, html=True),
-    name="static",
+    name="ui",
 )
+
+
+@app.get("/")
+def root():
+    return RedirectResponse(url="/ui")
 
 
 # ---------------------------------------
@@ -55,9 +60,6 @@ class QueryRequest(BaseModel):
 def query_analytics(req: QueryRequest):
     q = req.question.lower()
 
-    # -------------------------------
-    # DATA ROUTING
-    # -------------------------------
     if "ar balance" in q:
         result = get_ar_balance_by_payer()
 
@@ -83,32 +85,17 @@ def query_analytics(req: QueryRequest):
     elif "dataset" in q:
         result = get_dataset_overview()
 
-    # -------------------------------
-    # GENERAL (NON-DATA) QUESTION
-    # -------------------------------
     else:
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
-                {
-                    "role": "system",
-                    "content": "Answer briefly and clearly. Do not mention datasets.",
-                },
-                {
-                    "role": "user",
-                    "content": req.question,
-                },
+                {"role": "system", "content": "Answer briefly and clearly."},
+                {"role": "user", "content": req.question},
             ],
             temperature=0,
         )
+        return {"answer": response.choices[0].message.content.strip()}
 
-        return {
-            "answer": response.choices[0].message.content.strip()
-        }
-
-    # -------------------------------
-    # DATA + LLM EXPLANATION
-    # -------------------------------
     messages = build_prompt(req.question, result)
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
@@ -120,11 +107,3 @@ def query_analytics(req: QueryRequest):
         "answer": response.choices[0].message.content.strip(),
         "data": result,
     }
-
-
-# ---------------------------------------
-# LOCAL RUN (OPTIONAL)
-# ---------------------------------------
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("backend.app:app", host="0.0.0.0", port=8000)

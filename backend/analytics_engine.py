@@ -1,6 +1,12 @@
+import os
 import pandas as pd
 
-DATASET_PATH = "RCM_Analytics_10k_Sample_Data.xlsx"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATASET_PATH = os.path.join(
+    BASE_DIR,
+    "RCM_Analytics_10k_Sample_Data.xlsx"
+)
+
 
 
 # --------------------------------------------------

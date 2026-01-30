@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from groq import Groq
 
-from analytics_engine import (
+from backend.analytics_engine import (
     get_dataset_overview,
     get_top_denial_categories,
     get_denials_summary,
@@ -16,7 +16,9 @@ from analytics_engine import (
     get_preventable_denial_percentage,
     get_ar_balance_by_payer,
 )
-from prompt_builder import build_prompt
+
+from backend.prompt_builder import build_prompt
+
 
 # ---------------------------------------
 # SETUP
